@@ -1,0 +1,97 @@
+$spacer: 1rem;
+
+$spacers: (
+	0: 0,
+	1: ($spacer * .25),
+	2: ($spacer * .5),
+	3: ($spacer * .75),
+	4:  $spacer,
+	5: ($spacer * 1.5),
+	6:($spacer * 3)
+);
+
+
+$y: top bottom;
+$x: right left;
+$all: 'all';
+
+//Replace 'nth' list value
+@function replace-nth($list, $index, $value) {
+  $result: null;
+  @if type-of($index) != number {
+    @warn "$index: #{quote($index)} is not a number for `replace-nth`.";
+  } @else if $index == 0 {
+    @warn "List index 0 must be a non-zero integer for `replace-nth`.";
+  } @else if abs($index) > length($list) {
+    @warn "List index is #{$index} but list is only #{length($list)} item long for `replace-nth`.";
+  } @else {
+    $result: ();
+    $index: if($index < 0, length($list) + $index + 1, $index);
+
+    @for $i from 1 through length($list) {
+      @if $i == $index {
+        $result: append($result, $value);
+      } @else {
+        $result: append($result, nth($list, $i));
+      }
+    }
+  } 
+  @return $result;
+}
+
+//See if value has a unit -px, -rem or not.
+// if it doesn't, calculate the rem from spacer values
+@function checkUnit($values) {
+  $newValue:null;
+  @each $value in $values {
+     $i: index($values, $value);
+      @if type-of($value) == 'number' and unitless($value) {
+        $spacer: map-get($spacers, $value);
+        $values:replace-nth($values, $i, $spacer);
+    }
+  }
+	@return $values;
+}
+
+@mixin directionSpace($property, $directions, $values...) {
+	//Check if any of the values are missing units
+	//Assign the spacer unit if necessary
+	$values: checkUnit($values...);
+  @debug $values;
+	//If there is no -x or -y on the property then use shorthand
+	@if $directions == 'all' {
+		#{$property}: $values;
+	} @else {
+		//Otherwise use padding-[side]
+		@each $direction in $directions {
+			$i: index($directions, $direction);
+			#{$property}-#{nth($directions, $i)}: nth($values, $i);
+		}
+	}
+}
+
+@mixin padding($values...) {
+	@include directionSpace(padding, $all, $values...);
+}
+@mixin margin($values...) {
+	@include directionSpace(margin, $all, $values...);
+}
+@mixin padding-y($values...) {
+	@include directionSpace(padding, $y, $values...);
+}
+@mixin margin-y($values...) {
+	@include directionSpace(margin, $y, $values...);
+}
+@mixin padding-x($values...) {
+	@include directionSpace(padding, $x, $values...);
+}
+@mixin margin-x($values...) {
+	@include directionSpace(margin, $x, $values...);
+}
+
+//Usage//
+.class {
+  @include padding(1 7.5px 3rem 0);
+  @include margin(2 3 5px 1rem)
+}  
+.class2 { @include padding-x(3 3)}
